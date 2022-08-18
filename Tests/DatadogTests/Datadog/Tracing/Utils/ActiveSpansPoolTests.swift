@@ -16,6 +16,7 @@ class ActiveSpansPoolTests: XCTestCase {
         let oneSpan = tracer.startSpan(operationName: .mockAny()).setActive()
         XCTAssert(tracer.activeSpan?.dd.ddContext.spanID == oneSpan.dd.ddContext.spanID)
         oneSpan.finish()
+        sleep(1)
         XCTAssertNil(tracer.activeSpan)
     }
 
