@@ -40,6 +40,8 @@ internal class FilesOrchestrator: FilesOrchestratorType {
         self.directory = directory
         self.performance = performance
         self.dateProvider = dateProvider
+
+        print("👻", directory.url)
     }
 
     // MARK: - `WritableFile` orchestration
