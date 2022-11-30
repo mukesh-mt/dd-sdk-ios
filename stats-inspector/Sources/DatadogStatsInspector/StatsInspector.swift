@@ -12,16 +12,22 @@ import SwiftUI
 public struct StatsInspector {
     @discardableResult
     public static func initialize(
+        config: Datadog.Configuration
     ) -> StatsInspectorController {
-        return StatsInspectorController()
+        return StatsInspectorController(config: config)
     }
 }
 
 public class StatsInspectorController {
-
     let memoryUsageProvider = MemoryUsageProvider()
     let cpuUsageProvider = CPUUsageProvider()
     let diskUsageProvider = DiskUsageProvider()
+
+    let config: Datadog.Configuration
+
+    init(config: Datadog.Configuration) {
+        self.config = config
+    }
 
     public func enableShareGesture() {
         NotificationCenter.default.addObserver(
@@ -37,7 +43,8 @@ public class StatsInspectorController {
             rootView: StatsView(
                 memoryUsageProvider: memoryUsageProvider,
                 cpuUsageProvider: cpuUsageProvider,
-                diskUsageProvider: diskUsageProvider
+                diskUsageProvider: diskUsageProvider,
+                config: config
             )
         )
         let keyWindow = UIApplication

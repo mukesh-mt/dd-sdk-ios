@@ -4,6 +4,7 @@
  * Copyright 2019-2020 Datadog, Inc.
  */
 
+import Datadog
 import Foundation
 import SwiftUI
 import Charts
@@ -17,6 +18,8 @@ struct StatsView: View {
     @ObservedObject var memoryUsageProvider: MemoryUsageProvider
     @ObservedObject var cpuUsageProvider: CPUUsageProvider
     @ObservedObject var diskUsageProvider: DiskUsageProvider
+
+    var config: Datadog.Configuration
 
     var body: some View {
         TabView {
@@ -115,6 +118,11 @@ struct StatsView: View {
             .tabItem {
                 Label("Core", systemImage: "externaldrive")
             }
+
+            InfoView(config: config)
+                .tabItem {
+                    Label("Info", systemImage: "info.circle")
+                }
         }
         .tint(.purple)
     }
@@ -125,7 +133,7 @@ import Combine
 class MemoryUsageProvider: ObservableObject {
     private var assignCancellable: AnyCancellable? = nil
 
-    @Published var history = [Float]()
+    @Published var history = CappedCollection<Float>(maxCount: 120)
 
     init() {
         assignCancellable = Timer.publish(every: 1.0, on: .main, in: .default)
@@ -156,7 +164,7 @@ class MemoryUsageProvider: ObservableObject {
 class CPUUsageProvider: ObservableObject {
     private var assignCancellable: AnyCancellable? = nil
 
-    @Published var history = [Double]()
+    @Published var history = CappedCollection<Double>(maxCount: 120)
 
     init() {
         assignCancellable = Timer.publish(every: 1.0, on: .main, in: .default)
@@ -238,7 +246,7 @@ class CPUUsageProvider: ObservableObject {
 class DiskUsageProvider: ObservableObject {
     private var assignCancellable: AnyCancellable? = nil
 
-    @Published var history = [Int]()
+    @Published var history = CappedCollection<Int>(maxCount: 120)
 
     init() {
         assignCancellable = Timer.publish(every: 1.0, on: .main, in: .default)
