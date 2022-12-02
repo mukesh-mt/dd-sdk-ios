@@ -84,7 +84,8 @@ struct StatsView: View {
                 VStack(alignment: .leading) {
                     ScrollView {
                         if #available(iOS 16.0, *) {
-                            Text("Session Replay files in Caches")
+                            Text(
+                                String(format: "Session Replay files in Caches %d B", diskUsageProvider.currentCacheSize))
                                 .foregroundColor(.secondary)
 
                             Chart {
@@ -219,6 +220,7 @@ class DiskUsageProvider: ObservableObject {
     private var assignCancellable: AnyCancellable? = nil
 
     @Published var history = CappedCollection<Int>(maxCount: 120)
+    @Published var currentCacheSize: Int = 0
 
     init() {
         assignCancellable = Timer.publish(every: 1.0, on: .main, in: .default)
@@ -227,14 +229,16 @@ class DiskUsageProvider: ObservableObject {
                 self.reportSessionReplayFilesInCaches()
             }
             .sink(receiveValue: { [unowned self] in
-                self.history.append($0)
+                self.history.append($0.0)
+                self.currentCacheSize = $0.1
             })
     }
 
-    func reportSessionReplayFilesInCaches() -> Int {
+    func reportSessionReplayFilesInCaches() -> (Int, Int) {
         let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
 
         var files = [URL]()
+        var fileSizes: Int = 0
         if let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
             for case let fileURL as URL in enumerator {
                 do {
@@ -244,12 +248,15 @@ class DiskUsageProvider: ObservableObject {
                         && !fileURL.absoluteString.contains("fsCachedData")
                         && !fileURL.absoluteString.contains(".db")
                         && fileURL.absoluteString.contains("session-replay") {
+
+                        
+                        fileSizes += fileAttributes.fileSize ?? 0
                         files.append(fileURL)
                     }
                 } catch { print(error, fileURL) }
             }
         }
-        return files.count
+        return (files.count, fileSizes)
     }
 }
 
