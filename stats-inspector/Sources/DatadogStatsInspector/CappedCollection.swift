@@ -29,6 +29,7 @@ extension CappedCollection: Collection, ExpressibleByArrayLiteral {
 
     var startIndex: Index { return elements.startIndex }
     var endIndex: Index { return elements.endIndex }
+    var last: T? { return elements.last }
 
     subscript(index: Index) -> Iterator.Element {
         get { return elements[index] }

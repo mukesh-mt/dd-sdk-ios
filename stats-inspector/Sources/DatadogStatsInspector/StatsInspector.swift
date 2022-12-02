@@ -57,7 +57,9 @@ public class StatsInspectorController {
             while let presentedViewController = topController.presentedViewController {
                 topController = presentedViewController
             }
-            topController.present(vc, animated: true)
+            if topController is UIHostingController<StatsView> == false {
+                topController.present(vc, animated: true)
+            }
         }
     }
 }

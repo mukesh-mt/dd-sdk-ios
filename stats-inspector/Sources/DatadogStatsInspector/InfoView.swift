@@ -49,7 +49,7 @@ struct InfoView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.large)
-            .navigationTitle("Info")
+            .navigationTitle("SDK Configuration Info")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Close") {
