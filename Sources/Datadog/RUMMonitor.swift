@@ -61,6 +61,30 @@ internal extension RUMResourceType {
             self = .native
         }
     }
+
+    /// Determines the `RUMResourceType` based on the MIME type of given `HTTPURLResponse`.
+    /// Defaults to `.other`.
+    ///
+    /// - Parameters:
+    ///   - response: the `HTTPURLResponse` of the resource.
+    init(mimeType: String?) {
+        if let mimeType = mimeType {
+            let components = mimeType.split(separator: "/")
+            let type = components.first?.lowercased()
+            let subtype = components.last?.split(separator: ";").first?.lowercased()
+
+            switch (type, subtype) {
+            case ("image", _): self = .image
+            case ("video", _), ("audio", _): self = .media
+            case ("font", _): self = .font
+            case ("text", "css"): self = .css
+            case ("text", "javascript"): self = .js
+            default: self = .native
+            }
+        } else {
+            self = .native
+        }
+    }
 }
 
 internal typealias RUMErrorSourceType = RUMErrorEvent.Error.SourceType

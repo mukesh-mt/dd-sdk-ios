@@ -16,7 +16,7 @@ class TracingMessageReceiverTests: XCTestCase {
         defer { core.flushAndTearDown() }
 
         // Given
-        let receiver = TracingMessageReceiver()
+        let receiver = ContextMessageReceiver()
         try core.register(feature: DatadogRemoteFeatureMock(messageReceiver: receiver))
         XCTAssertNil(receiver.rum.attributes, "RUM context should be nil until it is set by RUM")
 

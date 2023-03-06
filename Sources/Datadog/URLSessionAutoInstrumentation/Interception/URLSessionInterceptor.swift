@@ -33,6 +33,7 @@ public class URLSessionInterceptor: URLSessionInterceptorType {
         return instrumentation?.interceptor as? URLSessionInterceptor
     }
 
+    weak var core: DatadogCoreProtocol?
     /// First party hosts defined by the user.
     private let firstPartyHosts: FirstPartyHosts
     /// Filters internal `URLs` used by the SDK.
@@ -52,6 +53,7 @@ public class URLSessionInterceptor: URLSessionInterceptorType {
     // MARK: - Initialization
 
     convenience init(
+        core: DatadogCoreProtocol,
         configuration: FeaturesConfiguration.URLSessionAutoInstrumentation,
         dateProvider: DateProvider,
         appStateListener: AppStateListening
@@ -71,13 +73,19 @@ public class URLSessionInterceptor: URLSessionInterceptorType {
             )
         }
 
-        self.init(configuration: configuration, handler: handler)
+        self.init(
+            core: core,
+            configuration: configuration,
+            handler: handler
+        )
     }
 
     init(
+        core: DatadogCoreProtocol,
         configuration: FeaturesConfiguration.URLSessionAutoInstrumentation,
         handler: URLSessionInterceptionHandler
     ) {
+        self.core = core
         self.firstPartyHosts = configuration.userDefinedFirstPartyHosts
         self.internalURLsFilter = InternalURLsFilter(urls: configuration.sdkInternalURLs)
         self.handler = handler

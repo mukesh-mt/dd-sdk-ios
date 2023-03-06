@@ -30,6 +30,7 @@ class URLSessionAutoInstrumentationTests: XCTestCase {
 
         // When
         let instrumentation = URLSessionAutoInstrumentation(
+            core: core,
             configuration: .mockAny(),
             dateProvider: SystemDateProvider(),
             appStateListener: AppStateListenerMock.mockAny()
@@ -45,6 +46,7 @@ class URLSessionAutoInstrumentationTests: XCTestCase {
         // Given
         let rum: RUMFeature = .mockAny()
         let instrumentation = URLSessionAutoInstrumentation(
+            core: core,
             configuration: .mockAny(),
             dateProvider: SystemDateProvider(),
             appStateListener: AppStateListenerMock.mockAny()

@@ -43,6 +43,7 @@ class URLSessionInterceptorTests: XCTestCase {
         // When
         let appStateListener = AppStateListenerMock.mockAny()
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: .mockWith(instrumentTracing: instrumentTracing, instrumentRUM: instrumentRUM),
             dateProvider: SystemDateProvider(),
             appStateListener: appStateListener
@@ -68,6 +69,7 @@ class URLSessionInterceptorTests: XCTestCase {
 
         // When
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: .mockWith(instrumentTracing: instrumentTracing, instrumentRUM: instrumentRUM),
             dateProvider: SystemDateProvider(),
             appStateListener: AppStateListenerMock.mockAny()
@@ -92,6 +94,7 @@ class URLSessionInterceptorTests: XCTestCase {
 
         // When
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: .mockWith(instrumentTracing: instrumentTracing, instrumentRUM: instrumentRUM),
             dateProvider: SystemDateProvider(),
             appStateListener: AppStateListenerMock.mockAny()
@@ -134,6 +137,7 @@ class URLSessionInterceptorTests: XCTestCase {
     func testGivenTracingAndRUMInstrumentationEnabled_whenInterceptingRequests_itInjectsTracingContextToFirstPartyRequests() throws {
         // Given
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(
                 tracingInstrumentationEnabled: true,
                 rumInstrumentationEnabled: true,
@@ -192,6 +196,7 @@ class URLSessionInterceptorTests: XCTestCase {
     func testGivenOnlyTracingInstrumentationEnabled_whenInterceptingRequests_itInjectsTracingContextToFirstPartyRequests() throws {
         // Given
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(
                 tracingInstrumentationEnabled: true,
                 rumInstrumentationEnabled: false,
@@ -227,6 +232,7 @@ class URLSessionInterceptorTests: XCTestCase {
     func testGivenTracingInstrumentationEnabled_whenInterceptingRequests_itInjectsSampledOutTracingContextToFirstPartyRequests() throws {
         // Given
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(
                 tracingInstrumentationEnabled: true,
                 rumInstrumentationEnabled: false,
@@ -259,6 +265,7 @@ class URLSessionInterceptorTests: XCTestCase {
     func testGivenOnlyRUMInstrumentationEnabled_whenInterceptingRequests_itDoesNotModifyThem() throws {
         // Given
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(tracingInstrumentationEnabled: false, rumInstrumentationEnabled: true),
             handler: handler
         )
@@ -279,6 +286,7 @@ class URLSessionInterceptorTests: XCTestCase {
     func testGivenTracingInstrumentationEnabledButTracerNotRegistered_whenInterceptingRequests_itDoesNotInjectTracingContextToAnyRequest() throws {
         // Given
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(tracingInstrumentationEnabled: true, rumInstrumentationEnabled: .random()),
             handler: handler
         )
@@ -314,6 +322,7 @@ class URLSessionInterceptorTests: XCTestCase {
 
         // Given
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(tracingInstrumentationEnabled: true, rumInstrumentationEnabled: .random()),
             handler: handler
         )
@@ -435,6 +444,7 @@ class URLSessionInterceptorTests: XCTestCase {
 
         // Given
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(tracingInstrumentationEnabled: false, rumInstrumentationEnabled: true),
             handler: handler
         )
@@ -515,6 +525,7 @@ class URLSessionInterceptorTests: XCTestCase {
 
     func testRandomlyCallingDifferentAPIsConcurrentlyDoesNotCrash() {
         let interceptor = URLSessionInterceptor(
+            core: core,
             configuration: mockConfiguration(tracingInstrumentationEnabled: true, rumInstrumentationEnabled: true),
             handler: handler
         )

@@ -23,7 +23,7 @@ internal struct DatadogTraceFeature: DatadogRemoteFeature {
         dateProvider: DateProvider,
         configuration: DatadogTracer.Configuration
     ) {
-        let receiver = TracingMessageReceiver()
+        let receiver = ContextMessageReceiver()
         self.init(
             tracer: .init(
                 core: core,

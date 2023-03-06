@@ -13,6 +13,7 @@ internal final class URLSessionAutoInstrumentation: RUMCommandPublisher {
     let interceptor: URLSessionInterceptorType
 
     convenience init?(
+        core: DatadogCoreProtocol,
         configuration: FeaturesConfiguration.URLSessionAutoInstrumentation,
         dateProvider: DateProvider,
         appStateListener: AppStateListening
@@ -21,6 +22,7 @@ internal final class URLSessionAutoInstrumentation: RUMCommandPublisher {
             self.init(
                 swizzler: try URLSessionSwizzler(),
                 interceptor: URLSessionInterceptor(
+                    core: core,
                     configuration: configuration,
                     dateProvider: dateProvider,
                     appStateListener: appStateListener

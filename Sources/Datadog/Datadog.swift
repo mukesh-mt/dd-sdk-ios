@@ -252,6 +252,7 @@ public class Datadog {
 
         if let urlSessionAutoInstrumentationConfiguration = configuration.urlSessionAutoInstrumentation {
             urlSessionAutoInstrumentation = URLSessionAutoInstrumentation(
+                core: core,
                 configuration: urlSessionAutoInstrumentationConfiguration,
                 dateProvider: configuration.common.dateProvider,
                 appStateListener: appStateListener

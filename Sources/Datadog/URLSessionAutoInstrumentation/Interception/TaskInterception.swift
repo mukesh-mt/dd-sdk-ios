@@ -71,8 +71,8 @@ internal struct ResourceCompletion {
 
 /// Encapsulates key metrics retrieved either from `URLSessionTaskMetrics` or any other relevant data source.
 /// Reference: https://developer.apple.com/documentation/foundation/urlsessiontasktransactionmetrics
-internal struct ResourceMetrics {
-    struct DateInterval {
+internal struct ResourceMetrics: Codable {
+    struct DateInterval: Codable {
         let start, end: Date
         var duration: TimeInterval { end.timeIntervalSince(start) }
 

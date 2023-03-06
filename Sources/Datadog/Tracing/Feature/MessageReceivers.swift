@@ -7,7 +7,7 @@
 import Foundation
 import DatadogInternal
 
-internal struct TracingMessageReceiver: FeatureMessageReceiver {
+internal struct ContextMessageReceiver: FeatureMessageReceiver {
     /// Tracks RUM context to be associated with spans.
     let rum = TracingWithRUMIntegration()
 
