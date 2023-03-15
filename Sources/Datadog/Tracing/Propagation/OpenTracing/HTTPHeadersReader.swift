@@ -6,19 +6,19 @@
 
 import Foundation
 
-internal class HTTPHeadersReader: OTHTTPHeadersReader, TracePropagationHeadersExtractor {
+public class HTTPHeadersReader: OTHTTPHeadersReader, TracePropagationHeadersExtractor {
     private let httpHeaderFields: [String: String]
     private var baggageItemQueue: DispatchQueue?
 
-    init(httpHeaderFields: [String: String]) {
+    public init(httpHeaderFields: [String: String]) {
         self.httpHeaderFields = httpHeaderFields
     }
 
-    func use(baggageItemQueue: DispatchQueue) {
+    public func use(baggageItemQueue: DispatchQueue) {
         self.baggageItemQueue = baggageItemQueue
     }
 
-    func extract() -> OTSpanContext? {
+    public func extract() -> OTSpanContext? {
         guard let baggageItemQueue = baggageItemQueue,
               let traceIDValue = httpHeaderFields[TracingHTTPHeaders.traceIDField],
               let spanIDValue = httpHeaderFields[TracingHTTPHeaders.parentSpanIDField],
