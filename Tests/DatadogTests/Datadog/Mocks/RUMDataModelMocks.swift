@@ -121,6 +121,8 @@ extension RUMViewEvent: RandomMockable {
             session: .init(
                 hasReplay: nil,
                 id: .mockRandom(),
+                isActive: true,
+                startReason: .appStart,
                 type: .user
             ),
             source: .ios,
@@ -383,7 +385,11 @@ extension RUMLongTaskEvent: RandomMockable {
             longTask: .init(duration: .mockRandom(), id: .mockRandom(), isFrozenFrame: .mockRandom()),
             os: .mockRandom(),
             service: .mockRandom(),
-            session: .init(hasReplay: false, id: .mockRandom(), type: .user),
+            session: .init(
+                hasReplay: false,
+                id: .mockRandom(),
+                type: .user
+            ),
             source: .ios,
             synthetics: nil,
             usr: .mockRandom(),
@@ -416,7 +422,10 @@ extension TelemetryConfigurationEvent: RandomMockable {
                     initializationType: nil,
                     mobileVitalsUpdatePeriod: .mockRandom(),
                     premiumSampleRate: nil,
+                    reactNativeVersion: nil,
+                    reactVersion: nil,
                     replaySampleRate: nil,
+                    selectedTracingPropagators: nil,
                     sessionReplaySampleRate: nil,
                     sessionSampleRate: .mockRandom(),
                     silentMultipleInit: nil,
@@ -438,6 +447,7 @@ extension TelemetryConfigurationEvent: RandomMockable {
                     trackSessionAcrossSubdomains: nil,
                     trackViewsManually: nil,
                     useAllowedTracingOrigins: .mockRandom(),
+                    useAllowedTracingUrls: nil,
                     useBeforeSend: nil,
                     useCrossSiteSessionCookie: nil,
                     useExcludedActivityUrls: nil,

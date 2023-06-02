@@ -17,12 +17,6 @@ internal protocol ContinuousVitalReader {
 }
 
 internal final class VitalInfoSampler {
-    struct Constants {
-        // We use normalized 0...60 range for refresh rate in Mobile Vitals,
-        // assuming 60 is the industry standard.
-        static let normalizedRefreshRate = 60.0
-    }
-
     let cpuReader: SamplingBasedVitalReader
     private let cpuPublisher = VitalPublisher(initialValue: VitalInfo())
 
@@ -42,8 +36,7 @@ internal final class VitalInfoSampler {
     private let maximumRefreshRate: Double
 
     var refreshRate: VitalInfo {
-        let info = refreshRatePublisher.currentValue
-        return info.scaledDown(by: maximumRefreshRate / Constants.normalizedRefreshRate)
+        return refreshRatePublisher.currentValue
     }
 
     private var timer: Timer?
@@ -63,6 +56,10 @@ internal final class VitalInfoSampler {
         self.refreshRateReader.register(self.refreshRatePublisher)
         self.maximumRefreshRate = maximumRefreshRate
 
+        // Take initial sample
+        RunLoop.main.perform(inModes: [.common]) { [weak self] in
+            self?.takeSample()
+        }
         // Schedule reoccuring samples
         let timer = Timer(
             timeInterval: frequency,
@@ -70,13 +67,6 @@ internal final class VitalInfoSampler {
         ) { [weak self] _ in
             self?.takeSample()
         }
-        // Take initial sample
-        RunLoop.main.perform {
-            timer.fire()
-        }
-        // NOTE: RUMM-1280 based on my running Example app
-        // non-main run loops don't fire the timer.
-        // Although i can't catch this in unit tests
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }

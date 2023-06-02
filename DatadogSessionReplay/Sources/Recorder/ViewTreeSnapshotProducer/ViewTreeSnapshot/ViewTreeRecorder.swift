@@ -6,27 +6,6 @@
 
 import UIKit
 
-/// The context of recording subtree hierarchy.
-///
-/// Some fields are mutable, so `NodeRecorders` can specialise it for their subtree traversal.
-internal struct ViewTreeRecordingContext {
-    /// The context of the Recorder.
-    let recorder: Recorder.Context
-    /// The coordinate space to convert node positions to.
-    let coordinateSpace: UICoordinateSpace
-    /// Generates stable IDs for traversed views.
-    let ids: NodeIDGenerator
-    /// Masks text in recorded nodes.
-    /// Can be overwriten in by `NodeRecorder` if their subtree recording requires different masking.
-    var textObfuscator: TextObfuscating
-    /// Allows `NodeRecorders` to modify semantics of nodes in their subtree.
-    /// It gets called each time when a new semantic is found.
-    ///
-    /// The closure takes: current semantics, the `UIView` object and its `ViewAttributes`.
-    /// The closure implementation should return new semantics for that element.
-    var semanticsOverride: ((NodeSemantics, UIView, ViewAttributes) -> NodeSemantics)? = nil
-}
-
 internal struct ViewTreeRecorder {
     /// An array of enabled node recorders.
     ///
@@ -44,22 +23,31 @@ internal struct ViewTreeRecorder {
     // MARK: - Private
 
     private func recordRecursively(nodes: inout [Node], view: UIView, context: ViewTreeRecordingContext) {
-        let node = node(for: view, in: context)
-        nodes.append(node)
+        var context = context
+        if let viewController = view.next as? UIViewController {
+            context.viewControllerContext.parentType = .init(viewController)
+            context.viewControllerContext.isRootView = view == viewController.view
+        } else {
+            context.viewControllerContext.isRootView = false
+        }
 
-        switch node.semantics.subtreeStrategy {
+        let semantics = nodeSemantics(for: view, in: context)
+
+        if !semantics.nodes.isEmpty {
+            nodes.append(contentsOf: semantics.nodes)
+        }
+
+        switch semantics.subtreeStrategy {
         case .record:
             for subview in view.subviews {
                 recordRecursively(nodes: &nodes, view: subview, context: context)
             }
-        case .replace(let subtreeNodes):
-            nodes.append(contentsOf: subtreeNodes)
         case .ignore:
             break
         }
     }
 
-    private func node(for view: UIView, in context: ViewTreeRecordingContext) -> Node {
+    private func nodeSemantics(for view: UIView, in context: ViewTreeRecordingContext) -> NodeSemantics {
         let attributes = ViewAttributes(
             frameInRootView: view.convert(view.bounds, to: context.coordinateSpace),
             view: view
@@ -75,10 +63,6 @@ internal struct ViewTreeRecorder {
             if nextSemantics.importance >= semantics.importance {
                 semantics = nextSemantics
 
-                if let semanticsOverride = context.semanticsOverride {
-                    semantics = semanticsOverride(semantics, view, attributes)
-                }
-
                 if nextSemantics.importance == .max {
                     // We know the current semantics is best we can get, so skip querying other `nodeRecorders`:
                     break
@@ -86,6 +70,6 @@ internal struct ViewTreeRecorder {
             }
         }
 
-        return Node(viewAttributes: attributes, semantics: semantics)
+        return semantics
     }
 }

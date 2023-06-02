@@ -12,20 +12,18 @@ class ViewTreeSnapshotBuilderTests: XCTestCase {
     func testWhenQueryingNodeRecorders_itPassesAppropriateContext() throws {
         // Given
         let view = UIView(frame: .mockRandom())
-
-        let randomRecorderContext: Recorder.Context = .mockWith()
+        let randomRecorderContext: Recorder.Context = .mockRandom()
         let nodeRecorder = NodeRecorderMock(resultForView: { _ in nil })
         let builder = ViewTreeSnapshotBuilder(
             viewTreeRecorder: ViewTreeRecorder(nodeRecorders: [nodeRecorder]),
             idsGenerator: NodeIDGenerator(),
-            textObfuscator: TextObfuscator()
+            imageDataProvider: MockImageDataProvider()
         )
 
         // When
         let snapshot = builder.createSnapshot(of: view, with: randomRecorderContext)
 
         // Then
-        XCTAssertEqual(snapshot.date, randomRecorderContext.date)
         XCTAssertEqual(snapshot.rumContext, randomRecorderContext.rumContext)
 
         let queryContext = try XCTUnwrap(nodeRecorder.queryContexts.first)
@@ -41,7 +39,7 @@ class ViewTreeSnapshotBuilderTests: XCTestCase {
         let builder = ViewTreeSnapshotBuilder(
             viewTreeRecorder: ViewTreeRecorder(nodeRecorders: [nodeRecorder]),
             idsGenerator: NodeIDGenerator(),
-            textObfuscator: TextObfuscator()
+            imageDataProvider: MockImageDataProvider()
         )
 
         // When

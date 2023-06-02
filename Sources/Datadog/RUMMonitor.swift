@@ -214,6 +214,12 @@ public class RUMMonitor: DDRUMMonitor, RUMCommandSubscriber {
         }
 
         CITestIntegration.active?.startIntegration()
+
+        process(
+            command: RUMSDKInitCommand(
+                time: dateProvider.now
+            )
+        )
     }
 
     // MARK: - Public DDRUMMonitor conformance
@@ -601,6 +607,12 @@ public class RUMMonitor: DDRUMMonitor, RUMCommandSubscriber {
         }
     }
 
+    // MARK: - Session
+
+    override public func stopSession() {
+        process(command: RUMStopSessionCommand(time: dateProvider.now))
+    }
+
     // MARK: - Internal
 
     func enableRUMDebugging(_ enabled: Bool) {
@@ -629,8 +641,8 @@ public class RUMMonitor: DDRUMMonitor, RUMCommandSubscriber {
         // update the core context with rum context
         core.set(feature: "rum", attributes: {
             self.queue.sync {
-                let context = self.applicationScope.sessionScope?.viewScopes.last?.context ??
-                                self.applicationScope.sessionScope?.context ??
+                let context = self.applicationScope.activeSession?.viewScopes.last?.context ??
+                                self.applicationScope.activeSession?.context ??
                                 self.applicationScope.context
 
                 guard context.sessionID != .nullUUID else {
@@ -645,7 +657,7 @@ public class RUMMonitor: DDRUMMonitor, RUMCommandSubscriber {
                         RUMContextAttributes.IDs.viewID: context.activeViewID?.rawValue.uuidString.lowercased(),
                         RUMContextAttributes.IDs.userActionID: context.activeUserActionID?.rawValue.uuidString.lowercased(),
                     ],
-                    RUMContextAttributes.serverTimeOffset: self.applicationScope.sessionScope?.viewScopes.last?.serverTimeOffset
+                    RUMContextAttributes.serverTimeOffset: self.applicationScope.activeSession?.viewScopes.last?.serverTimeOffset
                 ]
             }
         })

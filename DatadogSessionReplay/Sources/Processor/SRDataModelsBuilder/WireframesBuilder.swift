@@ -25,7 +25,10 @@ internal class WireframesBuilder {
         /// The color (solid red) to use when the actual color conversion goes wrong.
         static let color = "#FF0000FF"
         /// The font family to use when the actual one cannot be read.
-        static let fontFamily = "-apple-system, Roboto, Helvetica, Arial"
+        ///
+        /// REPLAY-1421: This definition will promote SF font when running player in Safari, then “BlinkMacSystemFont” in macOS Chrome and
+        /// will ultimately fallback to “Roboto” or any “sans-serif” in other web browsers.
+        static let fontFamily = "-apple-system, BlinkMacSystemFont, 'Roboto', sans-serif"
         /// The font size to use when the actual one cannot be read.
         static let fontSize: CGFloat = 10
     }
@@ -98,24 +101,21 @@ internal class WireframesBuilder {
         cornerRadius: CGFloat? = nil,
         opacity: CGFloat? = nil
     ) -> SRWireframe {
-        var textPosition: SRTextPosition? = nil
-
-        if let textFrame = textFrame {
-            textPosition = .init(
-                alignment: textAlignment,
-                padding: .init(
-                    bottom: Int64(withNoOverflow: frame.maxY - textFrame.maxY),
-                    left: Int64(withNoOverflow: textFrame.minX - frame.minX),
-                    right: Int64(withNoOverflow: frame.maxX - textFrame.maxX),
-                    top: Int64(withNoOverflow: textFrame.minY - frame.minY)
-                )
+        let textFrame = textFrame ?? frame
+        let textPosition = SRTextPosition(
+            alignment: textAlignment,
+            padding: .init(
+                bottom: Int64(withNoOverflow: frame.maxY - textFrame.maxY),
+                left: Int64(withNoOverflow: textFrame.minX - frame.minX),
+                right: Int64(withNoOverflow: frame.maxX - textFrame.maxX),
+                top: Int64(withNoOverflow: textFrame.minY - frame.minY)
             )
-        }
+        )
 
         var fontSize = Int64(withNoOverflow: font?.pointSize ?? Fallback.fontSize)
-        if let boundingBox = textFrame?.size, text.count > 0, fontScalingEnabled {
+        if text.count > 0, fontScalingEnabled {
             // Calculates the approximate font size for available text area √(frameArea / numberOfCharacters)
-            let area = boundingBox.width * boundingBox.height
+            let area = textFrame.width * textFrame.height
             let calculatedFontSize = Int64(sqrt(area / CGFloat(text.count)))
             if calculatedFontSize < fontSize {
                 fontSize = calculatedFontSize

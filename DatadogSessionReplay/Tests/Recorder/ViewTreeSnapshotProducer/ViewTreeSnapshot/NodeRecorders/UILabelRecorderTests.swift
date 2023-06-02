@@ -6,7 +6,6 @@
 
 import XCTest
 @testable import DatadogSessionReplay
-@testable import TestUtilities
 
 // swiftlint:disable opening_brace
 class UILabelRecorderTests: XCTestCase {
@@ -27,7 +26,7 @@ class UILabelRecorderTests: XCTestCase {
         // Then
         let semantics = try XCTUnwrap(recorder.semantics(of: label, with: viewAttributes, in: .mockAny()))
         XCTAssertTrue(semantics is InvisibleElement)
-        XCTAssertNil(semantics.wireframesBuilder)
+        XCTAssertEqual(semantics.subtreeStrategy, .ignore)
     }
 
     func testWhenLabelHasTextOrAppearance() throws {
@@ -49,28 +48,13 @@ class UILabelRecorderTests: XCTestCase {
 
         // Then
         let semantics = try XCTUnwrap(recorder.semantics(of: label, with: viewAttributes, in: .mockAny()) as? SpecificElement)
-        DDAssertReflectionEqual(semantics.subtreeStrategy, .ignore, "Label's subtree should not be recorded")
+        XCTAssertEqual(semantics.subtreeStrategy, .ignore, "Label's subtree should not be recorded")
 
-        let builder = try XCTUnwrap(semantics.wireframesBuilder as? UILabelWireframesBuilder)
+        let builder = try XCTUnwrap(semantics.nodes.first?.wireframesBuilder as? UILabelWireframesBuilder)
         XCTAssertEqual(builder.attributes, viewAttributes)
         XCTAssertEqual(builder.text, label.text ?? "")
         XCTAssertEqual(builder.textColor, label.textColor?.cgColor)
         XCTAssertEqual(builder.font, label.font)
-    }
-
-    func testWhenRecordingInDifferentPrivacyModes() throws {
-        // Given
-        label.text = .mockRandom()
-
-        // When
-        let semantics1 = try XCTUnwrap(recorder.semantics(of: label, with: viewAttributes, in: .mockWith(recorder: .mockWith(privacy: .maskAll))))
-        let semantics2 = try XCTUnwrap(recorder.semantics(of: label, with: viewAttributes, in: .mockWith(recorder: .mockWith(privacy: .allowAll))))
-
-        // Then
-        let builder1 = try XCTUnwrap(semantics1.wireframesBuilder as? UILabelWireframesBuilder)
-        let builder2 = try XCTUnwrap(semantics2.wireframesBuilder as? UILabelWireframesBuilder)
-        XCTAssertTrue(builder1.textObfuscator is TextObfuscator, "With `.maskAll` privacy the text obfuscator should be used")
-        XCTAssertTrue(builder2.textObfuscator is NOPTextObfuscator, "With `.allowAll` privacy the text obfuscator should not be used")
     }
 
     func testWhenViewIsNotOfExpectedType() {
@@ -79,6 +63,24 @@ class UILabelRecorderTests: XCTestCase {
 
         // Then
         XCTAssertNil(recorder.semantics(of: view, with: viewAttributes, in: .mockAny()))
+    }
+
+    func testTextObfuscationInDifferentPrivacyModes() throws {
+        // When
+        label.text = .mockRandom()
+        viewAttributes = .mock(fixture: .visible())
+
+        // Then
+        func textObfuscator(in privacyMode: SessionReplayPrivacy) throws -> TextObfuscating {
+            return try recorder
+                .semantics(of: label, with: viewAttributes, in: .mockWith(recorder: .mockWith(privacy: privacyMode)))
+                .expectWireframeBuilder(ofType: UILabelWireframesBuilder.self)
+                .textObfuscator
+        }
+
+        XCTAssertTrue(try textObfuscator(in: .allowAll) is NOPTextObfuscator)
+        XCTAssertTrue(try textObfuscator(in: .maskAll) is SpacePreservingMaskObfuscator)
+        XCTAssertTrue(try textObfuscator(in: .maskUserInput) is NOPTextObfuscator)
     }
 }
 // swiftlint:enable opening_brace

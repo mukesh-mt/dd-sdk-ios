@@ -539,6 +539,35 @@ class LoggerTests: XCTestCase {
 
     // MARK: - Integration With RUM Feature
 
+    func testGivenBundlingWithRUMEnabledAndRUMMonitorRegistered_whenSendingLogBeforeAnyUserActivity_itContainsSessionId() throws {
+        core.context = .mockAny()
+
+        let logging: LoggingFeature = .mockAny()
+        core.register(feature: logging)
+
+        let rum: RUMFeature = .mockAny()
+        core.register(feature: rum)
+
+        // given
+        let logger = Logger.builder.build(in: core)
+        Global.rum = RUMMonitor.initialize(in: core)
+        defer { Global.rum = DDNoopRUMMonitor() }
+
+        // when
+        logger.info("message 0")
+
+        // then
+        let logMatchers = try core.waitAndReturnLogMatchers()
+        XCTAssertEqual(logMatchers.count, 1)
+
+        logMatchers.forEach {
+            $0.assertValue(
+                forKeyPath: RUMContextAttributes.IDs.sessionID,
+                isTypeOf: String.self
+            )
+        }
+    }
+
     func testGivenBundlingWithRUMEnabledAndRUMMonitorRegistered_whenSendingLog_itContainsCurrentRUMContext() throws {
         core.context = .mockAny()
 
@@ -551,28 +580,38 @@ class LoggerTests: XCTestCase {
         // given
         let logger = Logger.builder.build(in: core)
         Global.rum = RUMMonitor.initialize(in: core)
-        Global.rum.startView(viewController: mockView)
-        Global.rum.startUserAction(type: .tap, name: .mockAny())
         defer { Global.rum = DDNoopRUMMonitor() }
 
         // when
-        logger.info("info message")
+        Global.rum.startView(viewController: mockView)
+        logger.info("message 0")
+        Global.rum.startUserAction(type: .tap, name: .mockAny())
+        logger.info("message 1")
 
         // then
-        let logMatcher = try core.waitAndReturnLogMatchers()[0]
-        logMatcher.assertValue(
-            forKeyPath: RUMContextAttributes.IDs.applicationID,
-            equals: rum.configuration.applicationID
-        )
-        logMatcher.assertValue(
-            forKeyPath: RUMContextAttributes.IDs.sessionID,
-            isTypeOf: String.self
-        )
-        logMatcher.assertValue(
-            forKeyPath: RUMContextAttributes.IDs.viewID,
-            isTypeOf: String.self
-        )
-        logMatcher.assertValue(
+        let logMatchers = try core.waitAndReturnLogMatchers()
+        XCTAssertEqual(logMatchers.count, 2)
+
+        logMatchers.forEach {
+            $0.assertValue(
+                forKeyPath: RUMContextAttributes.IDs.applicationID,
+                equals: rum.configuration.applicationID
+            )
+
+            $0.assertValue(
+                forKeyPath: RUMContextAttributes.IDs.sessionID,
+                isTypeOf: String.self
+            )
+
+            $0.assertValue(
+                forKeyPath: RUMContextAttributes.IDs.viewID,
+                isTypeOf: String.self
+            )
+        }
+
+        logMatchers.first?.assertNoValue(forKeyPath: RUMContextAttributes.IDs.userActionID)
+
+        logMatchers.last?.assertValue(
             forKeyPath: RUMContextAttributes.IDs.userActionID,
             isTypeOf: String.self
         )

@@ -6,6 +6,7 @@
 
 import Foundation
 import UIKit
+import XCTest
 @testable import DatadogSessionReplay
 @testable import TestUtilities
 
@@ -149,14 +150,9 @@ extension ViewAttributes: AnyMockable, RandomMockable {
             isHidden = false
             alpha = 1
             frame = .mockRandom(minWidth: 10, minHeight: 10)
-            // some appearance:
-            oneOrMoreOf([
-                {
-                    layerBorderWidth = .mockRandom(min: 1, max: 5)
-                    layerBorderColor = UIColor.mockRandomWith(alpha: .mockRandom(min: 0.1, max: 1)).cgColor
-                },
-                { backgroundColor = UIColor.mockRandomWith(alpha: .mockRandom(min: 0.1, max: 1)).cgColor }
-            ])
+            backgroundColor = UIColor.mockRandomWith(alpha: 1).cgColor
+            layerBorderWidth = .mockRandom(min: 1, max: 5)
+            layerBorderColor = UIColor.mockRandomWith(alpha: .mockRandom(min: 0.1, max: 1)).cgColor
         }
         // swiftlint:enable opening_brace
 
@@ -201,11 +197,7 @@ extension NodeSubtreeStrategy: AnyMockable, RandomMockable {
     }
 
     public static func mockRandom() -> NodeSubtreeStrategy {
-        let all: [NodeSubtreeStrategy] = [
-            .record,
-            .replace(subtreeNodes: [.mockAny()]),
-            .ignore,
-        ]
+        let all: [NodeSubtreeStrategy] = [.record, .ignore]
         return all.randomElement()!
     }
 }
@@ -218,8 +210,8 @@ func mockRandomNodeSemantics() -> NodeSemantics {
     let all: [NodeSemantics] = [
         UnknownElement.constant,
         InvisibleElement.constant,
-        AmbiguousElement(wireframesBuilder: NOPWireframesBuilderMock()),
-        SpecificElement(wireframesBuilder: NOPWireframesBuilderMock(), subtreeStrategy: .mockRandom()),
+        AmbiguousElement(nodes: .mockRandom(count: .mockRandom(min: 1, max: 5))),
+        SpecificElement(subtreeStrategy: .mockRandom(), nodes: .mockRandom(count: .mockRandom(min: 1, max: 5))),
     ]
     return all.randomElement()!
 }
@@ -239,35 +231,48 @@ extension Node: AnyMockable, RandomMockable {
 
     static func mockWith(
         viewAttributes: ViewAttributes = .mockAny(),
-        semantics: NodeSemantics = InvisibleElement.constant
+        wireframesBuilder: NodeWireframesBuilder = NOPWireframesBuilderMock()
     ) -> Node {
         return .init(
             viewAttributes: viewAttributes,
-            semantics: semantics
+            wireframesBuilder: wireframesBuilder
         )
     }
 
     public static func mockRandom() -> Node {
         return .init(
             viewAttributes: .mockRandom(),
-            semantics: mockRandomNodeSemantics()
+            wireframesBuilder: NOPWireframesBuilderMock()
         )
     }
 }
 
 extension SpecificElement {
     static func mockAny() -> SpecificElement {
-        SpecificElement(wireframesBuilder: NOPWireframesBuilderMock(), subtreeStrategy: .mockRandom())
+        SpecificElement(subtreeStrategy: .mockRandom(), nodes: [])
     }
-    static func mock(
-        wireframeRect: CGRect,
-        subtreeStrategy: NodeSubtreeStrategy = .mockRandom()
+
+    static func mockWith(
+        subtreeStrategy: NodeSubtreeStrategy = .mockAny(),
+        nodes: [Node] = .mockAny()
     ) -> SpecificElement {
         SpecificElement(
-            wireframesBuilder: ShapeWireframesBuilderMock(wireframeRect: wireframeRect),
-            subtreeStrategy: subtreeStrategy
+            subtreeStrategy: subtreeStrategy,
+            nodes: nodes
         )
     }
+}
+
+internal class TextObfuscatorMock: TextObfuscating {
+    var result: (String) -> String = { $0 }
+
+    func mask(text: String) -> String {
+        return result(text)
+    }
+}
+
+internal func mockRandomTextObfuscator() -> TextObfuscating {
+    return [NOPTextObfuscator(), SpacePreservingMaskObfuscator(), FixLengthMaskObfuscator()].randomElement()!
 }
 
 extension ViewTreeRecordingContext: AnyMockable, RandomMockable {
@@ -280,7 +285,7 @@ extension ViewTreeRecordingContext: AnyMockable, RandomMockable {
             recorder: .mockRandom(),
             coordinateSpace: UIView.mockRandom(),
             ids: NodeIDGenerator(),
-            textObfuscator: TextObfuscator()
+            imageDataProvider: mockRandomImageDataProvider()
         )
     }
 
@@ -288,13 +293,13 @@ extension ViewTreeRecordingContext: AnyMockable, RandomMockable {
         recorder: Recorder.Context = .mockAny(),
         coordinateSpace: UICoordinateSpace = UIView.mockAny(),
         ids: NodeIDGenerator = NodeIDGenerator(),
-        textObfuscator: TextObfuscator = TextObfuscator()
+        imageDataProvider: ImageDataProviding = MockImageDataProvider()
     ) -> ViewTreeRecordingContext {
         return .init(
             recorder: recorder,
             coordinateSpace: coordinateSpace,
             ids: ids,
-            textObfuscator: textObfuscator
+            imageDataProvider: imageDataProvider
         )
     }
 }
@@ -302,6 +307,7 @@ extension ViewTreeRecordingContext: AnyMockable, RandomMockable {
 class NodeRecorderMock: NodeRecorder {
     var queriedViews: Set<UIView> = []
     var queryContexts: [ViewTreeRecordingContext] = []
+    var queryContextsByView: [UIView: ViewTreeRecordingContext] = [:]
     var resultForView: (UIView) -> NodeSemantics?
 
     init(resultForView: @escaping (UIView) -> NodeSemantics?) {
@@ -311,6 +317,7 @@ class NodeRecorderMock: NodeRecorder {
     func semantics(of view: UIView, with attributes: ViewAttributes, in context: ViewTreeRecordingContext) -> NodeSemantics? {
         queriedViews.insert(view)
         queryContexts.append(context)
+        queryContextsByView[view] = context
         return resultForView(view)
     }
 }
@@ -491,5 +498,18 @@ internal func mockUIView<View: UIView>(with attributes: ViewAttributes) -> View 
 extension UIView {
     static func mock(withFixture fixture: ViewAttributes.Fixture) -> Self {
         return mockUIView(with: .mock(fixture: fixture))
+    }
+}
+
+internal extension Optional where Wrapped == NodeSemantics {
+    func expectWireframeBuilders<T: NodeWireframesBuilder>(ofType: T.Type = T.self, file: StaticString = #file, line: UInt = #line) throws -> [T] {
+        return try unwrapOrThrow(file: file, line: line).nodes
+            .compactMap { $0.wireframesBuilder as? T }
+    }
+
+    func expectWireframeBuilder<T: NodeWireframesBuilder>(ofType: T.Type = T.self, file: StaticString = #file, line: UInt = #line) throws -> T {
+        let builders: [T] = try expectWireframeBuilders(file: file, line: line)
+        XCTAssertEqual(builders.count, 1, "Expected single \(T.self), found none", file: file, line: line)
+        return try XCTUnwrap(builders.first, file: file, line: line)
     }
 }

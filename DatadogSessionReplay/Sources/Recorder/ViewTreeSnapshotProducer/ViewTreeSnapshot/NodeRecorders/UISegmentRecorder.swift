@@ -7,6 +7,10 @@
 import UIKit
 
 internal struct UISegmentRecorder: NodeRecorder {
+    var textObfuscator: (ViewTreeRecordingContext) -> TextObfuscating = { context in
+        return context.recorder.privacy.inputAndOptionTextObfuscator
+    }
+
     func semantics(of view: UIView, with attributes: ViewAttributes, in context: ViewTreeRecordingContext) -> NodeSemantics? {
         guard let segment = view as? UISegmentedControl else {
             return nil
@@ -21,11 +25,11 @@ internal struct UISegmentRecorder: NodeRecorder {
         let builder = UISegmentWireframesBuilder(
             wireframeRect: attributes.frame,
             attributes: attributes,
-            textObfuscator: context.recorder.privacy == .maskAll ? context.textObfuscator : nopTextObfuscator,
+            textObfuscator: textObfuscator(context),
             backgroundWireframeID: ids[0],
             segmentWireframeIDs: Array(ids[1..<ids.count]),
             segmentTitles: (0..<segment.numberOfSegments).map { segment.titleForSegment(at: $0) },
-            selectedSegmentIndex: context.recorder.privacy == .maskAll ? nil : segment.selectedSegmentIndex,
+            selectedSegmentIndex: context.recorder.privacy.shouldMaskInputElements ? nil : segment.selectedSegmentIndex,
             selectedSegmentTintColor: {
                 if #available(iOS 13.0, *) {
                     return segment.selectedSegmentTintColor
@@ -34,7 +38,8 @@ internal struct UISegmentRecorder: NodeRecorder {
                 }
             }()
         )
-        return SpecificElement(wireframesBuilder: builder, subtreeStrategy: .ignore)
+        let node = Node(viewAttributes: attributes, wireframesBuilder: builder)
+        return SpecificElement(subtreeStrategy: .ignore, nodes: [node])
     }
 }
 

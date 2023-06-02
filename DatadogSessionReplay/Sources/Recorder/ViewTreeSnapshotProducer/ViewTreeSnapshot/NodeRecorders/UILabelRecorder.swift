@@ -6,38 +6,44 @@
 
 import UIKit
 
-internal struct UILabelRecorder: NodeRecorder {
+internal class UILabelRecorder: NodeRecorder {
+    /// An option for customizing wireframes builder created by this recorder.
+    var builderOverride: (UILabelWireframesBuilder) -> UILabelWireframesBuilder
+    var textObfuscator: (ViewTreeRecordingContext) -> TextObfuscating
+
+    init(
+        builderOverride: @escaping (UILabelWireframesBuilder) -> UILabelWireframesBuilder = { $0 },
+        textObfuscator: @escaping (ViewTreeRecordingContext) -> TextObfuscating = { context in
+            return context.recorder.privacy.staticTextObfuscator
+        }
+    ) {
+        self.builderOverride = builderOverride
+        self.textObfuscator = textObfuscator
+    }
+
     func semantics(of view: UIView, with attributes: ViewAttributes, in context: ViewTreeRecordingContext) -> NodeSemantics? {
         guard let label = view as? UILabel else {
             return nil
         }
 
-        let hasVisibleText = !(label.text?.isEmpty ?? true)
+        let hasVisibleText = attributes.isVisible && !(label.text?.isEmpty ?? true)
 
         guard hasVisibleText || attributes.hasAnyAppearance else {
             return InvisibleElement.constant
         }
-
-        // The actual frame of the text, which is smaller than the frame of the label:
-        let textFrame = CGRect(
-            x: attributes.frame.minX,
-            y: attributes.frame.minY + (attributes.frame.height - attributes.intrinsicContentSize.height) * 0.5,
-            width: attributes.intrinsicContentSize.width,
-            height: attributes.intrinsicContentSize.height
-        )
 
         let builder = UILabelWireframesBuilder(
             wireframeID: context.ids.nodeID(for: label),
             attributes: attributes,
             text: label.text ?? "",
             textColor: label.textColor?.cgColor,
-            textAlignment: nil,
+            textAlignment: label.textAlignment,
             font: label.font,
             fontScalingEnabled: label.adjustsFontSizeToFitWidth,
-            textObfuscator: context.recorder.privacy == .maskAll ? context.textObfuscator : nopTextObfuscator,
-            wireframeRect: textFrame
+            textObfuscator: textObfuscator(context)
         )
-        return SpecificElement(wireframesBuilder: builder, subtreeStrategy: .ignore)
+        let node = Node(viewAttributes: attributes, wireframesBuilder: builderOverride(builder))
+        return SpecificElement(subtreeStrategy: .ignore, nodes: [node])
     }
 }
 
@@ -48,26 +54,27 @@ internal struct UILabelWireframesBuilder: NodeWireframesBuilder {
     /// The text inside label.
     let text: String
     /// The color of the text.
-    let textColor: CGColor?
+    var textColor: CGColor?
     /// The alignment of the text.
-    var textAlignment: SRTextPosition.Alignment?
+    var textAlignment: NSTextAlignment
     /// The font used by the label.
     let font: UIFont?
     /// Flag that determines if font should be scaled
-    let fontScalingEnabled: Bool
+    var fontScalingEnabled: Bool
     /// Text obfuscator for masking text.
     let textObfuscator: TextObfuscating
 
-    let wireframeRect: CGRect
+    var wireframeRect: CGRect {
+        attributes.frame
+    }
 
     func buildWireframes(with builder: WireframesBuilder) -> [SRWireframe] {
         return [
             builder.createTextWireframe(
                 id: wireframeID,
-                frame: attributes.frame,
+                frame: wireframeRect,
                 text: textObfuscator.mask(text: text),
-                textFrame: wireframeRect,
-                textAlignment: textAlignment,
+                textAlignment: .init(systemTextAlignment: textAlignment),
                 textColor: textColor,
                 font: font,
                 fontScalingEnabled: fontScalingEnabled,
