@@ -227,8 +227,15 @@ public class DDTracer: NSObject, DatadogObjc.OTTracer {
     }
 
     @objc
-    public func extractWithFormat(_ format: String, carrier: Any) throws {
-        // TODO: RUMM-385 - we don't need to support it now
+    public func extractWithFormat(_ format: String, carrier: Any) -> OTSpanContext? {
+        if format == OT.formatTextMap, let headers = carrier as? [String: String] {
+            let reader = HTTPHeadersReader(httpHeaderFields: headers)
+            if let context =  swiftTracer.extract(reader: reader) {
+                return DDSpanContextObjc(swiftSpanContext: context)
+            }
+        }
+
+        return nil
     }
 
     // MARK: - Private
